@@ -1,18 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Middle-earth</title>
   <style>
-    body {
+    @import url('https://fonts.googleapis.com/css2?family=MedievalSharp&display=swap');
+
+    html, body {
       margin: 0;
       padding: 0;
-      font-family: "Cinzel", serif;
-      background: black;
-      color: #e0e0e0;
+      height: 100%;
+      background: #000;
+      color: #d0f0c0;
+      font-family: 'MedievalSharp', cursive;
       overflow: hidden;
+      cursor: url('https://cur.cursors-4u.net/symbols/sym-4/sym393.cur'), auto;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+    }
+
+    body.loaded {
+      opacity: 1;
     }
 
     canvas {
@@ -23,172 +32,136 @@
     }
 
     .container {
-      padding: 40px;
-      max-width: 800px;
-      margin: auto;
+      position: relative;
+      z-index: 1;
       text-align: center;
+      padding-top: 5vh;
+      animation: fadeInUp 2s ease-in-out;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     h1 {
-      font-size: 3em;
-      color: #a0ffb0;
-      margin-bottom: 30px;
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 10px #7f00ff;
     }
 
-    h2 {
-      font-size: 2em;
-      margin-top: 40px;
-    }
-
-    button {
-      padding: 15px 30px;
-      font-size: 1.5em;
-      background: #202020;
-      color: #a0ffa0;
-      border: 2px solid #30ff90;
-      border-radius: 10px;
-      cursor: pointer;
-      margin: 10px;
-    }
-
-    button:hover {
-      background: #404040;
-    }
-
-    #result, #nicknameResult, #decoratedNickname {
-      margin-top: 20px;
-      font-size: 1.8em;
-      color: #ffb0ff;
-      word-break: break-word;
-    }
-
-    .back-button {
+    .menu-button, .mantra-button {
       display: block;
-      margin-top: 30px;
-      font-size: 1.5em;
+      margin: 1rem auto;
+      padding: 1rem 2rem;
+      font-size: 1.5rem;
       color: #fff;
-      text-decoration: underline;
-      cursor: pointer;
+      background: linear-gradient(to right, #006400, #8a2be2);
+      border: none;
+      border-radius: 12px;
+      cursor: url('https://cur.cursors-4u.net/symbols/sym-4/sym393.cur'), auto;
+      box-shadow: 0 0 20px #8a2be2;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .menu-button:hover, .mantra-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 30px #00ff88;
+    }
+
+    #mantra-display {
+      margin-top: 2rem;
+      font-size: 1.3rem;
+      color: #a0ffe0;
+      text-shadow: 0 0 5px #8a2be2;
     }
   </style>
 </head>
-
 <body>
-  <canvas id="background"></canvas>
-  <div class="container" id="main-menu">
+  <canvas id="magicCanvas"></canvas>
+  <div class="container">
     <h1>Middle-earth</h1>
-    <button onclick="showSection('password')">Generate Password</button>
-    <button onclick="showSection('nickname')">Generate Fantasy Nickname</button>
-    <button onclick="showSection('decorate')">Decorate Nickname</button>
-  </div>
-
-  <div class="container" id="password-section" style="display:none">
-    <h2>Magic Password Generator</h2>
-    <button onclick="generatePassword()">Generate</button>
-    <div id="result"></div>
-    <span class="back-button" onclick="goBack()">← Back</span>
-  </div>
-
-  <div class="container" id="nickname-section" style="display:none">
-    <h2>Fantasy Nickname Generator</h2>
-    <button onclick="generateNickname()">Generate</button>
-    <div id="nicknameResult"></div>
-    <span class="back-button" onclick="goBack()">← Back</span>
-  </div>
-
-  <div class="container" id="decorate-section" style="display:none">
-    <h2>Nickname Decorator</h2>
-    <button onclick="decorateNickname()">Decorate</button>
-    <div id="decoratedNickname"></div>
-    <span class="back-button" onclick="goBack()">← Back</span>
+    <button class="menu-button" onclick="navigateTo('password.html')">Password Generator</button>
+    <button class="menu-button" onclick="navigateTo('nicknames.html')">Fantasy Nickname Generator</button>
+    <button class="menu-button" onclick="navigateTo('decorations.html')">Nickname Decorations</button>
+    <button class="menu-button" onclick="navigateTo('map.html')">Map of Middle-earth</button>
+    <button class="mantra-button" onclick="generateMantra()">🔮 Сгенерировать магическую мантру</button>
+    <div id="mantra-display"></div>
   </div>
 
   <script>
-    const passwordChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
-    const fantasyPrefixes = ["El", "Ar", "Thal", "Mor", "Gal", "Dru", "Syl", "Fen", "Vor", "Zan"];
-    const fantasyRoots = ["rion", "driel", "mir", "gorn", "wyn", "dor", "las", "thas", "rak", "dras"];
-    const decorations = ["★", "⚔", "☠", "✧", "❂", "☾", "✦", "❖", "♛", "♞"];
+    window.addEventListener('DOMContentLoaded', () => {
+      document.body.classList.add('loaded');
+    });
 
-    function generatePassword() {
-      let length = 16;
-      let password = "";
-      for (let i = 0; i < length; i++) {
-        password += passwordChars.charAt(Math.floor(Math.random() * passwordChars.length));
-      }
-      document.getElementById("result").textContent = password;
+    function navigateTo(url) {
+      document.body.classList.remove('loaded');
+      setTimeout(() => { window.location.href = url; }, 500);
     }
 
-    function generateNickname() {
-      const prefix = fantasyPrefixes[Math.floor(Math.random() * fantasyPrefixes.length)];
-      const root = fantasyRoots[Math.floor(Math.random() * fantasyRoots.length)];
-      document.getElementById("nicknameResult").textContent = prefix + root;
+    const mantras = [
+      "Whisper of the Obsidian Grove",
+      "Lightborn from the Cursed Depths",
+      "Fang of the Forgotten Moon",
+      "Echo of the Ancient Flame",
+      "Veilwalker of the Crystal Spire",
+      "Runebound by Midnight Vows",
+      "Sorrow’s Light of the Withered Vale"
+    ];
+
+    function generateMantra() {
+      const mantra = mantras[Math.floor(Math.random() * mantras.length)];
+      const display = document.getElementById('mantra-display');
+      display.textContent = mantra;
+      display.style.opacity = 0;
+      setTimeout(() => {
+        display.style.opacity = 1;
+      }, 100);
     }
 
-    function decorateNickname() {
-      const base = fantasyPrefixes[Math.floor(Math.random() * fantasyPrefixes.length)] +
-                    fantasyRoots[Math.floor(Math.random() * fantasyRoots.length)];
-      const left = decorations[Math.floor(Math.random() * decorations.length)];
-      const right = decorations[Math.floor(Math.random() * decorations.length)];
-      document.getElementById("decoratedNickname").textContent = `${left} ${base} ${right}`;
-    }
+    const canvas = document.getElementById('magicCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-    function showSection(id) {
-      document.getElementById("main-menu").style.display = "none";
-      document.getElementById("password-section").style.display = "none";
-      document.getElementById("nickname-section").style.display = "none";
-      document.getElementById("decorate-section").style.display = "none";
-      document.getElementById(`${id}-section`).style.display = "block";
-    }
-
-    function goBack() {
-      document.getElementById("main-menu").style.display = "block";
-      document.getElementById("password-section").style.display = "none";
-      document.getElementById("nickname-section").style.display = "none";
-      document.getElementById("decorate-section").style.display = "none";
-    }
-
-    // Simple animated background (green and purple fireflies)
-    const canvas = document.getElementById("background");
-    const ctx = canvas.getContext("2d");
-    let width = canvas.width = window.innerWidth;
-    let height = canvas.height = window.innerHeight;
-
-    const particles = [];
+    let particles = [];
     for (let i = 0; i < 100; i++) {
       particles.push({
-        x: Math.random() * width,
-        y: Math.random() * height,
-        radius: 4 + Math.random() * 6,
-        dx: -1 + Math.random() * 2,
-        dy: -1 + Math.random() * 2,
-        color: Math.random() > 0.5 ? "#00ff88" : "#aa66ff"
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 4 + 3,
+        dx: (Math.random() - 0.5) * 0.2,
+        dy: (Math.random() - 0.5) * 0.2,
+        color: Math.random() > 0.5 ? '#00ff88' : '#a020f0'
       });
     }
 
     function animate() {
-      ctx.clearRect(0, 0, width, height);
-      for (let p of particles) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fillStyle = p.color;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = p.color;
         ctx.fill();
 
         p.x += p.dx;
         p.y += p.dy;
 
-        if (p.x < 0 || p.x > width) p.dx *= -1;
-        if (p.y < 0 || p.y > height) p.dy *= -1;
-      }
+        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+      });
       requestAnimationFrame(animate);
     }
-
     animate();
+
     window.addEventListener('resize', () => {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     });
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap" rel="stylesheet">
 </body>
-
 </html>
